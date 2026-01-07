@@ -1,24 +1,39 @@
 # Tasks API
 
-A RESTful API built with FastAPI for managing tasks. This project includes comprehensive pytest test coverage and demonstrates CRUD operations.
+A RESTful API built with FastAPI for managing tasks with PostgreSQL database persistence. This project includes comprehensive pytest test coverage and demonstrates production-ready CRUD operations.
 
 ## Features
 
-- Create, read, update tasks
-- In-memory task storage
-- Comprehensive test coverage with pytest
-- FastAPI automatic documentation
-- Request/response validation with Pydantic
+- ✅ Create, read, update, delete tasks
+- ✅ PostgreSQL database with Neon hosting
+- ✅ SQLModel ORM for type-safe database operations
+- ✅ Environment-based configuration with pydantic-settings
+- ✅ CORS middleware support
+- ✅ Comprehensive test coverage with pytest
+- ✅ FastAPI automatic documentation (Swagger UI)
+- ✅ Request/response validation with Pydantic
+- ✅ Automatic database table creation on startup
 
 ## Project Structure
 
 ```
 tasks-api/
-├── main.py           # FastAPI application with endpoints
-├── test_main.py      # Pytest test suite
-├── pyproject.toml    # Project dependencies
-├── uv.lock           # Lock file for dependencies
-└── README.md         # This file
+├── app/
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── config.py      # Settings and environment configuration
+│   │   └── database.py    # Database engine and session management
+│   └── models/
+│       ├── __init__.py
+│       └── task.py        # SQLModel database models
+├── main.py                # FastAPI application with endpoints
+├── test_main.py           # Pytest test suite
+├── .env                   # Environment variables (not in git)
+├── .env.example           # Environment variables template
+├── .gitignore             # Git ignore rules
+├── pyproject.toml         # Project dependencies
+├── uv.lock                # Lock file for dependencies
+└── README.md              # This file
 ```
 
 ## Setup Instructions
@@ -27,6 +42,7 @@ tasks-api/
 
 - Python 3.13+
 - uv (Python package manager)
+- PostgreSQL database (we use [Neon](https://neon.tech) - serverless Postgres)
 
 ### Installation
 
@@ -49,7 +65,25 @@ tasks-api/
    ```bash
    uv add "fastapi[standard]"
    uv add pytest
+   uv add pydantic-settings
+   uv add sqlmodel
+   uv add psycopg2-binary
    ```
+
+5. **Set up PostgreSQL database:**
+   - Create a PostgreSQL database (recommended: [Neon](https://neon.tech) for free serverless Postgres)
+   - Copy the connection string (format: `postgresql://user:password@host:port/dbname`)
+
+6. **Set up environment variables:**
+   ```bash
+   cp .env.example .env
+   ```
+   Then edit `.env` and set your database connection:
+   ```bash
+   DATABASE_URL=postgresql://your-user:your-password@your-host:5432/your-database
+   ```
+
+7. **Database tables will be created automatically** when you first run the application.
 
 ## Running the Application
 
@@ -88,6 +122,7 @@ uv run fastapi dev main.py
 - `POST /tasks` - Create a new task
 - `GET /tasks/{task_id}` - Get a specific task by ID
 - `PUT /tasks/{task_id}` - Update an existing task
+- `DELETE /tasks/{task_id}` - Delete a task by ID
 
 ### Example Request - Create Task
 
@@ -110,6 +145,95 @@ curl -X POST http://localhost:8000/tasks \
   "status": "pending"
 }
 ```
+
+## Database Setup
+
+This application uses **PostgreSQL** for data persistence. We recommend using [Neon](https://neon.tech) for free serverless PostgreSQL hosting.
+
+### Quick Database Setup with Neon:
+
+1. Go to [https://neon.tech](https://neon.tech) and sign up
+2. Create a new project
+3. Copy the connection string (looks like: `postgresql://user:pass@host/dbname`)
+4. Add it to your `.env` file as `DATABASE_URL`
+
+### Database Connection String Format:
+
+```
+DATABASE_URL=postgresql://username:password@host:port/database?sslmode=require
+```
+
+### What Happens on Startup:
+
+When you start the application, it will:
+1. Connect to your PostgreSQL database
+2. Automatically create the `task` table if it doesn't exist
+3. Start accepting requests
+
+No manual database migrations needed for this project!
+
+## Environment Configuration
+
+This project uses **pydantic-settings** for environment-based configuration. Settings can be configured through environment variables or a `.env` file.
+
+### Configuration Files
+
+- **`app/core/config.py`** - Settings class with all configurable options
+- **`.env.example`** - Template showing all available environment variables
+- **`.env`** - Your actual configuration (git-ignored)
+
+### Available Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `PROJECT_NAME` | "Tasks API" | Name of the project |
+| `VERSION` | "1.0.0" | API version |
+| `DESCRIPTION` | "A FastAPI application..." | API description |
+| `HOST` | "0.0.0.0" | Server host |
+| `PORT` | 8000 | Server port |
+| `ALLOWED_ORIGINS` | `["http://localhost:3000", ...]` | CORS allowed origins |
+| `ENVIRONMENT` | "development" | Environment (development/staging/production) |
+| `DEBUG` | True | Debug mode |
+| `DATABASE_URL` | **Required** | PostgreSQL connection string |
+| `SECRET_KEY` | (change in production!) | Secret key for JWT tokens |
+| `ALGORITHM` | "HS256" | JWT algorithm |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | 30 | Token expiration time |
+| `MAX_TASKS_PER_USER` | 100 | Maximum tasks per user |
+| `DEFAULT_TASK_STATUS` | "pending" | Default status for new tasks |
+
+### How to Use Settings
+
+**In your code:**
+```python
+from app.core.config import settings
+
+# Access any setting
+print(settings.PROJECT_NAME)  # "Tasks API"
+print(settings.DEFAULT_TASK_STATUS)  # "pending"
+```
+
+**Override via .env file:**
+```bash
+# .env
+PROJECT_NAME=My Custom Tasks API
+DEFAULT_TASK_STATUS=todo
+MAX_TASKS_PER_USER=50
+```
+
+**Override via environment variables:**
+```bash
+export PROJECT_NAME="Production Tasks API"
+export DEBUG=false
+uv run uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+### Key Features of pydantic-settings
+
+✅ **Type validation** - All settings are type-checked automatically
+✅ **Default values** - Sensible defaults for all settings
+✅ **Auto .env loading** - Automatically loads from `.env` file
+✅ **Environment variables** - Can override with ENV vars
+✅ **IDE support** - Full autocomplete and type hints
 
 ## Running Tests
 
@@ -219,26 +343,55 @@ Test ends
 ## Technologies Used
 
 - **FastAPI** - Modern web framework for building APIs
-- **Pydantic** - Data validation using Python type hints
+- **SQLModel** - SQL databases in Python with type safety (combines SQLAlchemy + Pydantic)
+- **PostgreSQL** - Production-grade relational database
+- **Neon** - Serverless Postgres hosting platform
+- **Pydantic Settings** - Environment-based configuration management
 - **Pytest** - Testing framework
 - **Uvicorn** - ASGI server for running FastAPI
 - **uv** - Fast Python package manager
 
+## Database Architecture
+
+### SQLModel Models
+
+The project uses **SQLModel** which combines SQLAlchemy and Pydantic:
+
+- **`TaskBase`** - Base model with shared fields
+- **`Task`** - Database table model (with `table=True`)
+- **`TaskCreate`** - Request model for creating tasks
+- **`TaskResponse`** - Response model for API responses
+
+### Database Session Management
+
+- Database sessions are managed using FastAPI's dependency injection
+- `get_session()` provides a session per request
+- Automatic rollback on errors
+- Connection pooling with `pool_pre_ping` for reliability
+
+### Automatic Table Creation
+
+Tables are created automatically on application startup via the `@app.on_event("startup")` decorator.
+
 ## Development Notes
 
-- Tasks are stored in-memory (lost on server restart)
-- For production, consider using a database (PostgreSQL, MongoDB, etc.)
-- Task IDs are auto-generated based on list length
-- Default task status is "pending"
+- Tasks are persisted in PostgreSQL database (survive server restarts)
+- Database connection uses connection pooling for performance
+- SQL queries are logged in debug mode (set `DEBUG=true` in `.env`)
+- Task IDs are auto-generated by PostgreSQL using sequences
+- Default task status is configurable via `DEFAULT_TASK_STATUS` environment variable
 
 ## Future Enhancements
 
-- [ ] Add DELETE endpoint for tasks
 - [ ] Implement task status transitions (pending → in_progress → completed)
-- [ ] Add database persistence (SQLite, PostgreSQL)
-- [ ] Add task filtering and search
+- [ ] Add task filtering and search capabilities
 - [ ] Add authentication and user management
 - [ ] Add task due dates and priorities
+- [ ] Implement soft delete (archive) functionality
+- [ ] Add database migrations with Alembic
+- [ ] Add pagination for large task lists
+- [ ] Add task assignment to users
+- [ ] Implement task categories/tags
 
 ## License
 

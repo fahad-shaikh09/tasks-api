@@ -4,6 +4,8 @@ from sqlmodel import Session, select
 from app.core.config import settings
 from app.core.database import create_db_and_tables, get_session
 from app.models import Task, TaskCreate, TaskResponse
+from app.models.user import User  # Import User model for table creation
+from app.api.endpoints import auth
 
 
 # Initialize FastAPI with settings from config
@@ -22,6 +24,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include API routers
+app.include_router(auth.router, prefix="/api")
 
 
 # Startup event - create database tables

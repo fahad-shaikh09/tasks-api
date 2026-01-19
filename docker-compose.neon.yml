@@ -1,0 +1,40 @@
+# Docker Compose for Tasks API with Neon PostgreSQL (Cloud)
+# Use this configuration when connecting to Neon serverless PostgreSQL
+
+version: '3.8'
+
+services:
+  # Tasks API application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.neon
+    container_name: tasks-api-neon
+    ports:
+      - "8000:8000"
+    environment:
+      # DATABASE_URL should point to your Neon PostgreSQL instance
+      # Format: postgresql://user:password@endpoint.neon.tech/dbname?sslmode=require
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - DEBUG=${DEBUG:-false}
+    volumes:
+      # Mount code for development (optional - remove for production)
+      - .:/app
+    networks:
+      - tasks-network
+    restart: unless-stopped
+
+networks:
+  tasks-network:
+    driver: bridge
+
+# Note: No database or pgAdmin services since Neon is cloud-hosted
+# To use Neon database:
+# 1. Create a Neon project at https://neon.tech
+# 2. Copy your connection string
+# 3. Create .env file with: DATABASE_URL=postgresql://user:password@endpoint.neon.tech/dbname?sslmode=require
+# 4. Run: docker-compose -f docker-compose.neon.yml up

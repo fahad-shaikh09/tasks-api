@@ -38,11 +38,16 @@ tasks-api/
 
 ## Setup Instructions
 
+You can run this application in two ways:
+1. **Local Development** - Python virtual environment
+2. **Docker** - Containerized with Neon or Local PostgreSQL
+
 ### Prerequisites
 
 - Python 3.13+
 - uv (Python package manager)
 - PostgreSQL database (we use [Neon](https://neon.tech) - serverless Postgres)
+- Docker (optional - for containerized deployment)
 
 ### Installation
 
@@ -111,6 +116,60 @@ uv run fastapi dev main.py
 
 - **Swagger UI:** http://localhost:8000/docs
 - **ReDoc:** http://localhost:8000/redoc
+
+## Docker Deployment
+
+This project supports Docker deployment with two database configurations:
+
+### 🐳 Quick Start with Docker:
+
+**Option 1: Local PostgreSQL (Development)**
+```bash
+# Start app + PostgreSQL + pgAdmin
+docker-compose up -d
+
+# Access:
+# - API: http://localhost:8000
+# - pgAdmin: http://localhost:5050 (admin@admin.com / admin)
+```
+
+**Option 2: Neon PostgreSQL (Cloud/Production)**
+```bash
+# Create .env file with Neon DATABASE_URL
+echo "DATABASE_URL=postgresql://user:pass@endpoint.neon.tech/db?sslmode=require" > .env
+
+# Start app only (connects to Neon)
+docker-compose -f docker-compose.neon.yml up -d
+```
+
+### 📦 Pre-built Docker Images:
+
+Pull from Docker Hub (if published):
+```bash
+# For Neon PostgreSQL
+docker pull <username>/<repo>:v1-neon
+
+# For Local PostgreSQL
+docker pull <username>/<repo>:v1-local-db
+```
+
+### 🚀 Build and Push New Versions:
+
+Use the automated script to build and push both images:
+```bash
+./build-and-push.sh
+# Enter your Docker Hub username and repository name
+# Script auto-detects latest version and increments by 1
+```
+
+### 📚 Complete Docker Documentation:
+
+See **[DOCKER-SETUP.md](./DOCKER-SETUP.md)** for:
+- Detailed setup instructions
+- Dockerfile differences (Dockerfile.neon vs Dockerfile.local)
+- docker-compose configurations
+- Troubleshooting guide
+- Switching between Neon and Local PostgreSQL
 
 ## API Endpoints
 

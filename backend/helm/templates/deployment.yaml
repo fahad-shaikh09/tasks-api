@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+      {{- if or .Values.vault.enabled .Values.dapr.enabled }}
+      annotations:
+        {{- if .Values.vault.enabled }}
+        # Vault Agent Injector annotations
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: {{ .Values.vault.role | quote }}
+        vault.hashicorp.com/agent-inject-status: "update"
+        # Inject database_url secret
+        vault.hashicorp.com/agent-inject-secret-database_url: {{ .Values.vault.secretPath }}/database
+        vault.hashicorp.com/agent-inject-template-database_url: |
+          {{`{{- with secret `}}"{{ .Values.vault.secretPath }}/database"{{` -}}`}}
+          {{`{{ .Data.data.database_url }}`}}
+          {{`{{- end -}}`}}
+        # Inject secret_key secret
+        vault.hashicorp.com/agent-inject-secret-secret_key: {{ .Values.vault.secretPath }}/auth
+        vault.hashicorp.com/agent-inject-template-secret_key: |
+          {{`{{- with secret `}}"{{ .Values.vault.secretPath }}/auth"{{` -}}`}}
+          {{`{{ .Data.data.secret_key }}`}}
+          {{`{{- end -}}`}}
+        {{- if .Values.vault.tlsSkipVerify }}
+        vault.hashicorp.com/tls-skip-verify: "true"
+        {{- end }}
+        {{- if .Values.vault.caCertSecret }}
+        vault.hashicorp.com/ca-cert: "/vault/tls/ca.crt"
+        {{- end }}
+        {{- end }}
+        {{- if .Values.dapr.enabled }}
+        # Dapr sidecar injection annotations
+        # These tell the Dapr sidecar-injector to add a "daprd" container to this pod.
+        dapr.io/enabled: "true"
+        dapr.io/app-id: {{ .Values.dapr.appId | quote }}
+        dapr.io/app-port: {{ .Values.dapr.appPort | quote }}
+        dapr.io/log-level: {{ .Values.dapr.logLevel | quote }}
+        {{- end }}
+      {{- end }}
+    spec:
+      {{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ .Release.Name }}-config
+            {{- if and .Values.secrets.enabled (not .Values.vault.enabled) }}
+            - secretRef:
+                name: {{ .Release.Name }}-secret
+            {{- end }}
+          env:
+            - name: VAULT_ENABLED
+              value: {{ .Values.vault.enabled | quote }}
+            {{- if .Values.dapr.enabled }}
+            - name: DAPR_PUBSUB_NAME
+              value: {{ .Values.dapr.pubsubName | quote }}
+            - name: DAPR_PUBSUB_TOPIC
+              value: {{ .Values.dapr.pubsubTopic | quote }}
+            {{- end }}
+          livenessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

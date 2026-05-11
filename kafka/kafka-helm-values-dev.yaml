@@ -1,0 +1,14 @@
+# Strimzi Operator Helm Values - Development
+# These configure the Strimzi operator itself, not the Kafka cluster.
+# The Kafka cluster is defined separately in kafka-cluster-dev.yaml.
+
+# Watch all namespaces for Kafka CRDs
+watchAnyNamespace: true
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 384Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi

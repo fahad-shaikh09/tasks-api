@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
@@ -6,6 +8,9 @@ from app.core.database import create_db_and_tables, get_session
 from app.models import Task, TaskCreate, TaskResponse
 from app.models.user import User  # Import User model for table creation
 from app.api.endpoints import auth
+from app.events import publish_task_event
+
+logger = logging.getLogger(__name__)
 
 
 # Initialize FastAPI with settings from config
@@ -59,6 +64,9 @@ def create_task(task: TaskCreate, session: Session = Depends(get_session)):
     session.commit()
     session.refresh(db_task)
 
+    # Publish event to Kafka via Dapr — other services can react to new tasks
+    publish_task_event("task-created", db_task.id, db_task.model_dump())
+
     return db_task
         
         
@@ -88,6 +96,9 @@ def update_task(task_id: int, task: TaskCreate, session: Session = Depends(get_s
     session.commit()
     session.refresh(db_task)
 
+    # Publish event — e.g., a notification service could alert users of changes
+    publish_task_event("task-updated", db_task.id, db_task.model_dump())
+
     return db_task
 
 # Delete a task
@@ -99,6 +110,9 @@ def delete_task(task_id: int, session: Session = Depends(get_session)):
 
     session.delete(task)
     session.commit()
+
+    # Publish event — task_data is None since the task no longer exists
+    publish_task_event("task-deleted", task_id, None)
 
     return {"message": "Task deleted"}
 

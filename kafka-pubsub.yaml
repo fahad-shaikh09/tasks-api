@@ -1,0 +1,37 @@
+# Dapr Pub/Sub Component - Kafka
+# This tells Dapr to use Kafka as the pub/sub message broker.
+#
+# How it works:
+#   1. Your app POSTs to http://localhost:3500/v1.0/publish/kafka-pubsub/tasks
+#   2. The Dapr sidecar receives this and writes the message to Kafka topic "tasks"
+#   3. Any service subscribed to the "tasks" topic gets the message delivered
+#      via an HTTP POST to its subscriber endpoint
+#
+# The "metadata.name" below (kafka-pubsub) is the pubsub name you use in
+# your publish URL and subscription config.
+#
+# Apply with: kubectl apply -f kafka-pubsub.yaml
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: kafka-pubsub
+  namespace: tasks-app
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+    # Kafka broker address — Strimzi creates a bootstrap service.
+    # Format: <cluster-name>-kafka-bootstrap.<namespace>.svc.cluster.local:<port>
+    - name: brokers
+      value: "kafka-kafka-bootstrap.kafka.svc.cluster.local:9092"
+    # Consumer group ID — all instances of the same app share this group,
+    # so each message is processed by only one instance (load balancing).
+    - name: consumerGroup
+      value: "tasks-api"
+    # No authentication for dev. For production with SASL, you'd add:
+    #   authType: password
+    #   saslUsername: dapr
+    #   saslPassword: <password>
+    - name: authType
+      value: "none"

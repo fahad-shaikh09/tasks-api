@@ -1,0 +1,28 @@
+replicaCount: 1
+
+image:
+  repository: image-registry.openshift-image-registry.svc:5000/tasks-app/notification
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 8002
+
+# Dapr Configuration
+# This service subscribes to task events — Dapr delivers Kafka messages to it.
+dapr:
+  enabled: true
+  appId: "notification-service"
+  appPort: "8002"
+  logLevel: "info"
+  pubsubName: "kafka-pubsub"
+  pubsubTopic: "tasks"
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi

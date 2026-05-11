@@ -1,0 +1,34 @@
+# Dapr Helm Values - Development
+# Lightweight single-replica setup for local Kubernetes (minikube, kind, Docker Desktop).
+
+global:
+  ha:
+    enabled: false
+  logAsJson: true
+
+dapr_sidecar_injector:
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 25m
+      memory: 32Mi
+
+dapr_operator:
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 25m
+      memory: 32Mi
+
+dapr_sentry:
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 25m
+      memory: 32Mi

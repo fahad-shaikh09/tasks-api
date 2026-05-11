@@ -4,12 +4,12 @@
 version: '3.8'
 
 services:
-  # Tasks API application
-  app:
+  # Backend API
+  backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile.neon
-    container_name: tasks-api-neon
+    container_name: tasks-api-backend-neon
     ports:
       - "8000:8000"
     environment:
@@ -22,8 +22,25 @@ services:
       - ENVIRONMENT=${ENVIRONMENT:-production}
       - DEBUG=${DEBUG:-false}
     volumes:
-      # Mount code for development (optional - remove for production)
-      - .:/app
+      - ./backend:/app
+    networks:
+      - tasks-network
+    restart: unless-stopped
+
+  # Frontend UI
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tasks-api-frontend-neon
+    ports:
+      - "8001:8001"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
     networks:
       - tasks-network
     restart: unless-stopped

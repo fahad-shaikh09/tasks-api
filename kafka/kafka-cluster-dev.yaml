@@ -1,0 +1,68 @@
+# Strimzi Kafka Cluster - Development
+#
+# Strimzi 0.46.0+ uses KRaft mode (no ZooKeeper) with KafkaNodePool CRDs.
+# Two resources are needed:
+#   1. KafkaNodePool — defines the broker nodes (replicas, storage, resources)
+#   2. Kafka — defines the cluster config (listeners, version)
+#
+# The operator reads both and creates the actual pods.
+
+---
+# KafkaNodePool defines the broker nodes.
+# In dev, we use a single "combined" node that acts as both controller and broker.
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: combined
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: kafka
+spec:
+  replicas: 1
+  # "combined" means this node handles both KRaft controller duties
+  # (leader election, metadata) AND broker duties (message storage).
+  # In production, you'd separate these into dedicated pools.
+  roles:
+    - controller
+    - broker
+  storage:
+    type: ephemeral
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 512Mi
+
+---
+# Kafka CR defines the cluster-level configuration.
+# The annotation enables KafkaNodePool support.
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: kafka
+  namespace: kafka
+  annotations:
+    strimzi.io/node-pools: enabled
+    strimzi.io/kraft: enabled
+spec:
+  kafka:
+    version: 4.2.0
+    listeners:
+      # PLAIN listener — no TLS, no auth. Good for dev.
+      # Accessible at: kafka-kafka-bootstrap.kafka.svc.cluster.local:9092
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+    config:
+      # Single broker = replication factor must be 1
+      offsets.topic.replication.factor: 1
+      transaction.state.log.replication.factor: 1
+      transaction.state.log.min.isr: 1
+      default.replication.factor: 1
+      min.insync.replicas: 1
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}

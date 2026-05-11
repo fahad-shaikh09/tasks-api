@@ -1,0 +1,48 @@
+# Dapr Helm Values - Production
+# These override defaults in the official dapr/dapr chart.
+# Ref: https://github.com/dapr/dapr/tree/master/charts/dapr
+
+global:
+  # HA mode: runs 3 replicas of each Dapr control plane component.
+  # This ensures the sidecar-injector and operator stay available
+  # even if a node goes down.
+  ha:
+    enabled: true
+  # Structured JSON logs are easier to parse in log aggregation tools
+  # like Grafana Loki or ELK stack.
+  logAsJson: true
+
+# The sidecar injector watches for pods with the annotation
+# "dapr.io/enabled: true" and automatically adds a Dapr sidecar container.
+dapr_sidecar_injector:
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# The operator manages Dapr Component CRDs (like kafka-pubsub.yaml).
+# When you kubectl apply a Component, the operator ensures all sidecars
+# pick up the new configuration.
+dapr_operator:
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Sentry handles mTLS — automatic encryption between all Dapr sidecars.
+# In production, this means service-to-service communication is encrypted
+# without you writing any TLS code.
+dapr_sentry:
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi

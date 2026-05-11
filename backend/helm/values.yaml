@@ -1,0 +1,69 @@
+replicaCount: 1
+
+image:
+  repository: image-registry.openshift-image-registry.svc:5000/tasks-app/backend
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 8000
+
+# ConfigMap values (non-sensitive)
+config:
+  algorithm: "HS256"
+  accessTokenExpireMinutes: "30"
+  environment: "production"
+  debug: "false"
+
+# Vault Configuration
+vault:
+  enabled: false
+  # Vault server address
+  address: "https://vault.vault.svc.cluster.local:8200"
+  # Kubernetes auth role name
+  role: "tasks-api"
+  # Path to secrets in Vault (KV v2)
+  secretPath: "secret/data/tasks-api"
+  # TLS settings
+  tlsSkipVerify: false
+  # CA certificate secret (optional)
+  caCertSecret: ""
+
+# Dapr Configuration
+# When enabled, the Dapr sidecar-injector will add a "daprd" container
+# to every pod of this deployment. The sidecar handles pub/sub, state
+# management, and service invocation on behalf of your app.
+dapr:
+  enabled: true
+  # Unique identifier for this service in the Dapr mesh
+  appId: "tasks-api-backend"
+  # Port your app listens on — Dapr uses this to deliver subscribed messages
+  appPort: "8000"
+  # Log verbosity: debug, info, warn, error
+  logLevel: "info"
+  # Pub/Sub component name (must match kafka-pubsub.yaml metadata.name)
+  pubsubName: "kafka-pubsub"
+  # Kafka topic name for task events
+  pubsubTopic: "tasks"
+
+# Fallback secrets (only used when vault.enabled is false)
+# These should be overridden during helm install if not using Vault
+secrets:
+  enabled: true
+  databaseUrl: "postgresql://user:password@host:5432/dbname?sslmode=require"
+  secretKey: "change-me-generate-with-openssl-rand-hex-32"
+
+# Service Account
+serviceAccount:
+  create: true
+  name: "tasks-api"
+  annotations: {}
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi

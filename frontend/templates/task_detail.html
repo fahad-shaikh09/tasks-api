@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}{{ task.title }} - Tasks App{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <a href="/" class="back-link">&larr; Back to all tasks</a>
+</div>
+
+<div class="task-detail">
+    <div class="task-detail-header">
+        <h1>{{ task.title }}</h1>
+        <span class="task-id">Task #{{ task.id }}</span>
+    </div>
+
+    {% if task.description %}
+    <div class="task-detail-body">
+        <h3>Description</h3>
+        <p>{{ task.description }}</p>
+    </div>
+    {% else %}
+    <div class="task-detail-body">
+        <p class="no-description">No description provided</p>
+    </div>
+    {% endif %}
+
+    <div class="task-detail-actions">
+        <a href="/tasks/{{ task.id }}/edit" class="btn btn-primary">Edit Task</a>
+        <form action="/tasks/{{ task.id }}/delete" method="post" class="delete-form" onsubmit="return confirm('Are you sure you want to delete this task?');">
+            <button type="submit" class="btn btn-danger">Delete Task</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

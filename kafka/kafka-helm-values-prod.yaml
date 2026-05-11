@@ -1,0 +1,11 @@
+# Strimzi Operator Helm Values - Production
+
+watchAnyNamespace: true
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 384Mi

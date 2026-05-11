@@ -1,0 +1,52 @@
+# HashiCorp Vault Helm Chart Values - Development Mode
+# Install with: helm install vault hashicorp/vault -f vault-helm-values-dev.yaml -n vault --create-namespace
+#
+# WARNING: Development mode - secrets are stored in memory and not persisted.
+# Use vault-helm-values.yaml for production deployments.
+
+global:
+  enabled: true
+  tlsDisable: true  # Disable TLS for local development
+
+injector:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 50m
+    limits:
+      memory: 128Mi
+      cpu: 250m
+
+server:
+  enabled: true
+
+  # Development mode - auto-unsealed, in-memory storage
+  dev:
+    enabled: true
+    devRootToken: "dev-root-token"
+
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 50m
+    limits:
+      memory: 128Mi
+      cpu: 250m
+
+  # No persistent storage in dev mode
+  dataStorage:
+    enabled: false
+
+  auditStorage:
+    enabled: false
+
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 8200
+
+ui:
+  enabled: true
+  serviceType: ClusterIP

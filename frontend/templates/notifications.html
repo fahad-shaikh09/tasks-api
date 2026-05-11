@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications - Tasks App{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Notifications</h1>
+    {% if notifications %}
+    <form action="/notifications/clear" method="post" onsubmit="return confirm('Clear all notifications?');">
+        <button type="submit" class="btn btn-secondary">Clear All</button>
+    </form>
+    {% endif %}
+</div>
+
+{% if error %}
+<div class="alert alert-error">
+    {{ error }}
+</div>
+{% endif %}
+
+{% if notifications %}
+<div class="notifications-list">
+    {% for notif in notifications %}
+    <div class="notification-card notification-{{ notif.event_type }}">
+        <div class="notification-icon">
+            {% if notif.event_type == "task-created" %}
+                +
+            {% elif notif.event_type == "task-updated" %}
+                ~
+            {% elif notif.event_type == "task-deleted" %}
+                -
+            {% else %}
+                ?
+            {% endif %}
+        </div>
+        <div class="notification-content">
+            <p class="notification-message">{{ notif.message }}</p>
+            <span class="notification-time">{{ notif.timestamp }}</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <h2>No notifications yet</h2>
+    <p>Notifications will appear here when tasks are created, updated, or deleted.</p>
+    <a href="/tasks/new" class="btn btn-primary">Create a Task</a>
+</div>
+{% endif %}
+{% endblock %}

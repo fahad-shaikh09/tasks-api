@@ -1,0 +1,30 @@
+replicaCount: 1
+
+image:
+  repository: image-registry.openshift-image-registry.svc:5000/tasks-app/agent
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 8000
+
+# OpenShift Route — exposes the Chainlit UI to your browser
+route:
+  enabled: true
+  host: ""  # Leave empty for auto-generated: agent-tasks-app.apps-crc.testing
+
+# Environment variables
+env:
+  # MCP server is in the same namespace, reachable via K8s service DNS
+  mcpServerUrl: "http://mcp-server:8001/mcp"
+  # Override during install: --set env.openaiApiKey="sk-..."
+  openaiApiKey: ""
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi

@@ -1,0 +1,9 @@
+[project]
+name = "tasks-agent"
+version = "0.1.0"
+description = "AI agent that manages tasks via MCP server using OpenAI Agents SDK"
+requires-python = ">=3.13"
+dependencies = [
+    "openai-agents>=0.17.0",
+    "chainlit>=2.0.0",
+]

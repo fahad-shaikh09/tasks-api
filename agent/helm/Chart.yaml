@@ -1,0 +1,6 @@
+apiVersion: v2
+name: tasks-agent
+description: AI agent with Chainlit web UI for managing tasks via MCP
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

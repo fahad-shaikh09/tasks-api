@@ -1,0 +1,53 @@
+replicaCount: 1
+
+image:
+  repository: image-registry.openshift-image-registry.svc:5000/tasks-app/mcp-server
+  tag: latest
+  pullPolicy: Always
+  # This image is built via:
+  #   oc new-build --binary --strategy=docker --name=mcp-server
+  #   oc start-build mcp-server --from-dir=. --follow
+  # The internal registry auto-pushes to this repository.
+
+service:
+  type: ClusterIP
+  port: 8001
+
+# ConfigMap values (non-sensitive)
+config:
+  algorithm: "HS256"
+  accessTokenExpireMinutes: "30"
+  environment: "production"
+  debug: "false"
+
+# Dapr Configuration
+# The MCP server publishes task events to Kafka via the Dapr sidecar,
+# exactly like the backend does. Same pubsub component, same topic.
+dapr:
+  enabled: true
+  appId: "tasks-mcp-server"
+  appPort: "8001"
+  logLevel: "info"
+  pubsubName: "kafka-pubsub"
+  pubsubTopic: "tasks"
+
+# K8s Secrets (database credentials and app secret key)
+# Override these during helm install:
+#   helm install mcp-server ./helm --set secrets.databaseUrl="postgresql://..." --set secrets.secretKey="..."
+secrets:
+  databaseUrl: "postgresql://user:password@host:5432/dbname?sslmode=require"
+  secretKey: "change-me-generate-with-openssl-rand-hex-32"
+
+# Service Account
+serviceAccount:
+  create: true
+  name: "tasks-mcp-server"
+  annotations: {}
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi

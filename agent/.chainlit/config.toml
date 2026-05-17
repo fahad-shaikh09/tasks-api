@@ -1,0 +1,20 @@
+[project]
+enable_telemetry = false
+session_timeout = 3600
+user_env = []
+allow_origins = ["*"]
+
+[features]
+unsafe_allow_html = false
+latex = false
+auto_tag_thread = true
+
+[UI]
+name = "Task Manager"
+default_collapse_content = true
+cot = "hidden"
+custom_css = "/public/notif-bell.css"
+custom_js = "/public/notif-bell.js"
+
+[meta]
+generated_by = "tasks-api"

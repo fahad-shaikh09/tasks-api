@@ -69,7 +69,7 @@ def register(mcp: FastMCP) -> None:
         """
         session = next(get_session())
         try:
-            task = svc_update_task(
+            task = await svc_update_task(
                 session=session,
                 task_id=params.task_id,
                 title=params.title,

@@ -64,7 +64,7 @@ def register(mcp: FastMCP) -> None:
         """
         session = next(get_session())
         try:
-            task = svc_create_task(
+            task = await svc_create_task(
                 session=session,
                 title=params.title,
                 description=params.description,

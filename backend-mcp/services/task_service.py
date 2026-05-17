@@ -11,27 +11,50 @@ if the backend is later refactored to use a service layer.
 import logging
 from typing import Optional
 
+from sqlalchemy import func, text
 from sqlmodel import Session, select
 
 from app.models import Task, TaskCreate
-from app.events import publish_task_event
+from app.events import publish_task_event_async
 
 logger = logging.getLogger(__name__)
 
 
-def create_task(session: Session, title: str, description: str, status: Optional[str] = None) -> Task:
-    """
-    Create a new task, persist it, and publish a Kafka event.
+def _reset_task_sequence_if_empty(session: Session) -> None:
+    """If the task table is empty, restart the id sequence at 1.
 
-    Args:
-        session: Active database session.
-        title: Task title.
-        description: Task description.
-        status: Optional status override (defaults to config DEFAULT_TASK_STATUS).
-
-    Returns:
-        The created Task with its database-assigned ID.
+    Standard Postgres DELETE does not reset sequences — without this, a
+    fully-emptied table would still issue id=27, 28, ... on the next
+    insert. We only reset when the table is empty so we never collide
+    with existing rows. Best-effort: silently no-ops on SQLite or when
+    the connection lacks ALTER SEQUENCE privileges.
     """
+    try:
+        remaining = session.exec(select(func.count()).select_from(Task)).one()
+    except Exception as e:  # noqa: BLE001
+        logger.debug(f"Sequence reset skipped (count failed): {e}")
+        return
+
+    if remaining:
+        return
+
+    dialect = session.bind.dialect.name if session.bind else ""
+    if dialect != "postgresql":
+        return
+
+    try:
+        # SQLModel/SQLAlchemy auto-creates this sequence name for SERIAL columns.
+        session.execute(text("ALTER SEQUENCE task_id_seq RESTART WITH 1"))
+        session.commit()
+        logger.info("Task table empty — id sequence reset to 1")
+    except Exception as e:  # noqa: BLE001
+        logger.debug(f"Sequence reset skipped (ALTER failed): {e}")
+
+
+async def create_task(
+    session: Session, title: str, description: str, status: Optional[str] = None
+) -> Task:
+    """Create a new task, persist it, and publish a Kafka event."""
     task_data = TaskCreate(title=title, description=description)
     if status:
         task_data.status = status
@@ -41,7 +64,7 @@ def create_task(session: Session, title: str, description: str, status: Optional
     session.commit()
     session.refresh(db_task)
 
-    publish_task_event("task-created", db_task.id, db_task.model_dump())
+    await publish_task_event_async("task-created", db_task.id, db_task.model_dump())
     logger.info(f"Created task {db_task.id}: {db_task.title}")
 
     return db_task
@@ -53,18 +76,7 @@ def list_tasks(
     limit: int = 50,
     offset: int = 0,
 ) -> tuple[list[Task], int]:
-    """
-    List tasks with optional filtering and pagination.
-
-    Args:
-        session: Active database session.
-        status: Filter by task status (e.g. "pending", "completed").
-        limit: Max number of tasks to return.
-        offset: Number of tasks to skip.
-
-    Returns:
-        Tuple of (tasks list, total count matching the filter).
-    """
+    """List tasks with optional filtering and pagination, ordered by id."""
     statement = select(Task)
     count_statement = select(Task)
 
@@ -73,36 +85,28 @@ def list_tasks(
         count_statement = count_statement.where(Task.status == status)
 
     total = len(session.exec(count_statement).all())
-    tasks = session.exec(statement.offset(offset).limit(limit)).all()
+    # ORDER BY id is essential — without it Postgres returns rows in an
+    # arbitrary order, which makes ids look "random" to the end user.
+    tasks = session.exec(
+        statement.order_by(Task.id).offset(offset).limit(limit)
+    ).all()
 
     return tasks, total
 
 
 def get_task(session: Session, task_id: int) -> Optional[Task]:
-    """
-    Fetch a single task by ID.
-
-    Returns:
-        The Task if found, None otherwise.
-    """
+    """Fetch a single task by ID."""
     return session.get(Task, task_id)
 
 
-def update_task(
+async def update_task(
     session: Session,
     task_id: int,
     title: Optional[str] = None,
     description: Optional[str] = None,
     status: Optional[str] = None,
 ) -> Optional[Task]:
-    """
-    Update an existing task's fields and publish an update event.
-
-    Only provided (non-None) fields are updated.
-
-    Returns:
-        The updated Task, or None if not found.
-    """
+    """Update an existing task's fields and publish an update event."""
     db_task = session.get(Task, task_id)
     if not db_task:
         return None
@@ -118,19 +122,14 @@ def update_task(
     session.commit()
     session.refresh(db_task)
 
-    publish_task_event("task-updated", db_task.id, db_task.model_dump())
+    await publish_task_event_async("task-updated", db_task.id, db_task.model_dump())
     logger.info(f"Updated task {db_task.id}")
 
     return db_task
 
 
-def delete_task(session: Session, task_id: int) -> bool:
-    """
-    Delete a task and publish a deletion event.
-
-    Returns:
-        True if the task was found and deleted, False if not found.
-    """
+async def delete_task(session: Session, task_id: int) -> bool:
+    """Delete a task and publish a deletion event."""
     task = session.get(Task, task_id)
     if not task:
         return False
@@ -138,7 +137,9 @@ def delete_task(session: Session, task_id: int) -> bool:
     session.delete(task)
     session.commit()
 
-    publish_task_event("task-deleted", task_id, None)
+    _reset_task_sequence_if_empty(session)
+
+    await publish_task_event_async("task-deleted", task_id, None)
     logger.info(f"Deleted task {task_id}")
 
     return True

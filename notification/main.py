@@ -66,57 +66,54 @@ def dapr_subscribe():
     ]
 
 
-@app.post("/events/tasks")
-def handle_task_event(request_body: dict):
-    """
-    Receives task events delivered by Dapr from Kafka.
+def _store_event(event_data: dict) -> str:
+    """Build a notification from a raw event payload and store it.
 
-    Dapr wraps the original event in a CloudEvents envelope:
-    {
-        "data": {
-            "event_type": "task-created",
-            "task_id": 1,
-            "task": {"id": 1, "title": "...", ...},
-            "timestamp": "2026-04-24T10:00:00Z"
-        },
-        "datacontenttype": "application/json",
-        "id": "...",
-        "source": "tasks-api-backend",
-        "type": "com.dapr.event.sent",
-        ...
-    }
+    Shared between the Dapr-delivered path (/events/tasks) and the
+    direct-HTTP fallback (/events/direct). Returns the notification message.
     """
     global notification_counter
 
-    event_data = request_body.get("data", {})
     event_type = event_data.get("event_type", "unknown")
     task_id = event_data.get("task_id")
     task = event_data.get("task")
     timestamp = event_data.get("timestamp", datetime.now(timezone.utc).isoformat())
 
-    # Create a human-readable notification message
     message = _build_message(event_type, task_id, task)
 
     notification_counter += 1
-    notification = {
+    notifications.insert(0, {
         "id": notification_counter,
         "message": message,
         "event_type": event_type,
         "task_id": task_id,
         "timestamp": timestamp,
-    }
-
-    # Prepend so newest notifications appear first
-    notifications.insert(0, notification)
-
-    # Keep only the last 100 notifications to prevent unbounded memory growth
+    })
     if len(notifications) > 100:
         notifications.pop()
 
-    logger.info(f"Notification created: {message}")
+    return message
 
+
+@app.post("/events/tasks")
+def handle_task_event(request_body: dict):
+    """Receives task events delivered by Dapr from Kafka (CloudEvents-wrapped)."""
+    message = _store_event(request_body.get("data", {}))
+    logger.info(f"Notification created (kafka): {message}")
     # Return SUCCESS to tell Dapr to ACK the message in Kafka
     return {"status": "SUCCESS"}
+
+
+@app.post("/events/direct")
+def handle_direct_event(request_body: dict):
+    """Fallback path used when the publisher can't reach Dapr/Kafka.
+
+    Accepts the raw event payload directly (no CloudEvents envelope).
+    Schema matches what backend/app/events.py builds.
+    """
+    message = _store_event(request_body)
+    logger.info(f"Notification created (direct): {message}")
+    return {"status": "ok"}
 
 
 def _build_message(event_type: str, task_id: int, task: dict | None) -> str:

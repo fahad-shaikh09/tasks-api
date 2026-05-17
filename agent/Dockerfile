@@ -25,6 +25,8 @@ COPY pyproject.toml ./
 RUN /root/.local/bin/uv pip install --system -r pyproject.toml
 
 COPY main.py ./
+COPY public ./public
+COPY .chainlit ./.chainlit
 
 RUN chgrp -R 0 /app && chmod -R g=u /app
 

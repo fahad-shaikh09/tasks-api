@@ -42,7 +42,9 @@ if _backend_dir.is_dir() and str(_backend_dir) not in sys.path:
 # ---------------------------------------------------------------------------
 from mcp.server.fastmcp import FastMCP  # noqa: E402
 from app.core.database import create_db_and_tables  # noqa: E402
+from app.events import verify_dapr_publish_ready  # noqa: E402
 from tools import create_task, list_tasks, get_task, update_task, delete_task  # noqa: E402
+from tools import list_notifications, clear_notifications  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -90,8 +92,10 @@ list_tasks.register(mcp)
 get_task.register(mcp)
 update_task.register(mcp)
 delete_task.register(mcp)
+list_notifications.register(mcp)
+clear_notifications.register(mcp)
 
-logger.info("All MCP tools registered: create_task, list_tasks, get_task, update_task, delete_task")
+logger.info("All MCP tools registered: create_task, list_tasks, get_task, update_task, delete_task, list_notifications, clear_notifications")
 
 # ---------------------------------------------------------------------------
 # Ensure database tables exist (same as backend's startup hook)
@@ -104,5 +108,13 @@ logger.info("Database tables verified/created")
 # Entry point
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
+    import asyncio
+    # Probe the Dapr sidecar so we know up front whether publishing will work.
+    # If it fails, events.py will log "Dapr sidecar NOT reachable..." loudly.
+    try:
+        asyncio.run(verify_dapr_publish_ready())
+    except Exception as e:
+        logger.warning(f"Dapr startup probe error: {e}")
+
     logger.info(f"Starting tasks_mcp — transport={args.transport}, host={args.host}, port={args.port}")
     mcp.run(transport=args.transport)

@@ -49,7 +49,7 @@ def register(mcp: FastMCP) -> None:
         """
         session = next(get_session())
         try:
-            deleted = svc_delete_task(session=session, task_id=params.task_id)
+            deleted = await svc_delete_task(session=session, task_id=params.task_id)
             if not deleted:
                 return f"Error: Task with ID {params.task_id} not found."
             return json.dumps(

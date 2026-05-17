@@ -6,6 +6,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict
 from mcp.server.fastmcp import FastMCP
 
+from auth_context import get_current_user
 from services.notification_service import list_notifications as svc_list_notifications
 
 
@@ -62,7 +63,10 @@ def register(mcp: FastMCP) -> None:
                 }
         """
         try:
-            notifications = await svc_list_notifications(limit=params.limit)
+            user = get_current_user()
+            notifications = await svc_list_notifications(
+                user_id=user.id, limit=params.limit
+            )
             response = {
                 "count": len(notifications),
                 "notifications": notifications,

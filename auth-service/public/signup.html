@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Create account — Task Manager</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="card">
+    <h1>Create account</h1>
+    <p class="sub">Sign up to start managing your tasks.</p>
+
+    <form id="form" autocomplete="on">
+      <label for="name">Name</label>
+      <input id="name" name="name" type="text" required autocomplete="name" />
+
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" required autocomplete="email" />
+
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" required minlength="8" autocomplete="new-password" />
+
+      <button type="submit">Create account</button>
+    </form>
+
+    <div class="error" id="error"></div>
+
+    <div class="divider">or continue with</div>
+    <div class="social">
+      <button type="button" data-provider="google">Google</button>
+      <button type="button" data-provider="github">GitHub</button>
+    </div>
+
+    <p class="footer">
+      Already have an account? <a id="login-link" href="/login">Sign in</a>
+    </p>
+  </div>
+
+  <script src="/config.js"></script>
+  <script src="/static/auth.js" defer></script>
+  <script defer>
+    document.addEventListener("DOMContentLoaded", () => {
+      const link = document.getElementById("login-link");
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("redirect")) {
+        link.href = "/login?" + params.toString();
+      }
+
+      document.getElementById("form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const name = document.getElementById("name").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+        window.AUTH.signUpEmail(name, email, password);
+      });
+
+      document.querySelectorAll(".social button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          window.AUTH.signInSocial(btn.dataset.provider);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

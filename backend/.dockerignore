@@ -1,7 +1,0 @@
-helm
-*.md
-.git
-.gitignore
-node_modules
-__pycache__
-*.log

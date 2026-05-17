@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from mcp.server.fastmcp import FastMCP
 
 from app.core.database import get_session
+from auth_context import get_current_user
 from services.task_service import update_task as svc_update_task
 
 
@@ -67,10 +68,12 @@ def register(mcp: FastMCP) -> None:
         Returns:
             str: JSON object with the updated task, or an error if not found.
         """
+        user = get_current_user()
         session = next(get_session())
         try:
             task = await svc_update_task(
                 session=session,
+                user_id=user.id,
                 task_id=params.task_id,
                 title=params.title,
                 description=params.description,

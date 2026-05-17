@@ -49,11 +49,17 @@ NOTIFICATION_SERVICE_URL = os.getenv(
 NOTIFICATION_DIRECT_URL = f"{NOTIFICATION_SERVICE_URL}/events/direct"
 
 
-def _build_payload(event_type: str, task_id: int, task_data: dict | None) -> dict:
+def _build_payload(
+    event_type: str,
+    task_id: int,
+    task_data: dict | None,
+    user_id: str | None = None,
+) -> dict:
     return {
         "event_type": event_type,
         "task_id": task_id,
         "task": task_data,
+        "user_id": user_id,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -107,14 +113,17 @@ async def _direct_post_async(payload: dict) -> bool:
 
 
 def publish_task_event(
-    event_type: str, task_id: int, task_data: dict | None = None
+    event_type: str,
+    task_id: int,
+    task_data: dict | None = None,
+    user_id: str | None = None,
 ) -> bool:
     """Publish a task event synchronously. Used by the legacy FastAPI backend.
 
     Primary path: Dapr → Kafka → notification service.
     If Dapr fails, falls back to a direct HTTP POST to the notification service.
     """
-    payload = _build_payload(event_type, task_id, task_data)
+    payload = _build_payload(event_type, task_id, task_data, user_id)
     try:
         response = httpx.post(DAPR_PUBLISH_URL, json=payload, timeout=5.0)
         response.raise_for_status()
@@ -129,13 +138,16 @@ def publish_task_event(
 
 
 async def publish_task_event_async(
-    event_type: str, task_id: int, task_data: dict | None = None
+    event_type: str,
+    task_id: int,
+    task_data: dict | None = None,
+    user_id: str | None = None,
 ) -> bool:
     """Async variant used by the MCP service layer.
 
     Same Dapr-primary + direct-HTTP-fallback semantics as the sync version.
     """
-    payload = _build_payload(event_type, task_id, task_data)
+    payload = _build_payload(event_type, task_id, task_data, user_id)
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.post(DAPR_PUBLISH_URL, json=payload)

@@ -5,6 +5,7 @@ import json
 from pydantic import BaseModel, ConfigDict
 from mcp.server.fastmcp import FastMCP
 
+from auth_context import get_current_user
 from services.notification_service import clear_notifications as svc_clear_notifications
 
 
@@ -37,7 +38,8 @@ def register(mcp: FastMCP) -> None:
             str: JSON confirmation message.
         """
         try:
-            message = await svc_clear_notifications()
+            user = get_current_user()
+            message = await svc_clear_notifications(user_id=user.id)
             return json.dumps({"message": message})
         except Exception as e:
             return f"Error clearing notifications: {e}"

@@ -36,6 +36,9 @@ spec:
             - name: DAPR_PUBSUB_TOPIC
               value: {{ .Values.dapr.pubsubTopic | quote }}
             {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ .Release.Name }}-secret
           livenessProbe:
             tcpSocket:
               port: 8002

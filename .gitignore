@@ -15,6 +15,10 @@ wheels/
 .env.*.local
 *.env
 
+node_modules/
+auth-service/dist/
+auth-service/node_modules/
+
 # Vault initialization keys - CRITICAL: delete after saving elsewhere
 vault-init-keys.json
 vault-keys.json

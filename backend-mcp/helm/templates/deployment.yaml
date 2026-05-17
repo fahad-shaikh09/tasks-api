@@ -38,13 +38,17 @@ spec:
                 name: {{ .Release.Name }}-config
             - secretRef:
                 name: {{ .Release.Name }}-secret
-          {{- if .Values.dapr.enabled }}
           env:
+            - name: AUTH_SERVICE_URL
+              value: {{ .Values.externalServices.authServiceUrl | quote }}
+            - name: NOTIFICATION_SERVICE_URL
+              value: {{ .Values.externalServices.notificationServiceUrl | quote }}
+            {{- if .Values.dapr.enabled }}
             - name: DAPR_PUBSUB_NAME
               value: {{ .Values.dapr.pubsubName | quote }}
             - name: DAPR_PUBSUB_TOPIC
               value: {{ .Values.dapr.pubsubTopic | quote }}
-          {{- end }}
+            {{- end }}
           livenessProbe:
             tcpSocket:
               port: 8001

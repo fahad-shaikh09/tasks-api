@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from mcp.server.fastmcp import FastMCP
 
 from app.core.database import get_session
+from auth_context import get_current_user
 from services.task_service import list_tasks as svc_list_tasks
 
 
@@ -69,10 +70,12 @@ def register(mcp: FastMCP) -> None:
                     "tasks": [{"id": int, "title": str, "description": str, "status": str}, ...]
                 }
         """
+        user = get_current_user()
         session = next(get_session())
         try:
             tasks, total = svc_list_tasks(
                 session=session,
+                user_id=user.id,
                 status=params.status,
                 limit=params.limit,
                 offset=params.offset,

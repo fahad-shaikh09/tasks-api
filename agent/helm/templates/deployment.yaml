@@ -25,11 +25,22 @@ spec:
           env:
             - name: MCP_SERVER_URL
               value: {{ .Values.env.mcpServerUrl | quote }}
+            - name: NOTIFICATION_SERVICE_URL
+              value: {{ .Values.env.notificationServiceUrl | quote }}
+            - name: AUTH_SERVICE_URL
+              value: {{ .Values.env.authServiceUrl | quote }}
+            - name: AUTH_SERVICE_PUBLIC_URL
+              value: {{ .Values.env.authServicePublicUrl | quote }}
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ .Release.Name }}-secret
                   key: OPENAI_API_KEY
+            - name: CHAINLIT_AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secret
+                  key: CHAINLIT_AUTH_SECRET
           livenessProbe:
             tcpSocket:
               port: 8000

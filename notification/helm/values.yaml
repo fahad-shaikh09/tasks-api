@@ -19,6 +19,11 @@ dapr:
   pubsubName: "kafka-pubsub"
   pubsubTopic: "tasks"
 
+# Shared Postgres connection — same DB the MCP server uses for tasks.
+# Override with `--set secrets.databaseUrl=...` at install/upgrade time.
+secrets:
+  databaseUrl: "postgresql://user:password@host:5432/dbname?sslmode=require"
+
 resources:
   limits:
     cpu: 200m

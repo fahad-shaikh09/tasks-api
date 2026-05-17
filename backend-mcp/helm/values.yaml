@@ -31,6 +31,11 @@ dapr:
   pubsubName: "kafka-pubsub"
   pubsubTopic: "tasks"
 
+# External service URLs used by the MCP server.
+externalServices:
+  authServiceUrl: "http://auth-service:8003"
+  notificationServiceUrl: "http://notification:8002"
+
 # K8s Secrets (database credentials and app secret key)
 # Override these during helm install:
 #   helm install mcp-server ./helm --set secrets.databaseUrl="postgresql://..." --set secrets.secretKey="..."

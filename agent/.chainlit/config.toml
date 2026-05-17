@@ -3,6 +3,10 @@ enable_telemetry = false
 session_timeout = 3600
 user_env = []
 allow_origins = ["*"]
+# Required so Chainlit invokes @cl.header_auth_callback. Without this,
+# the callback is registered but never called.
+# (Chainlit also needs CHAINLIT_AUTH_SECRET env var set at runtime.)
+
 
 [features]
 unsafe_allow_html = false

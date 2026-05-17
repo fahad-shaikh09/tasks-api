@@ -49,6 +49,8 @@ COPY backend/app/ ./app/
 
 # Copy MCP server code
 COPY backend-mcp/server.py ./server.py
+COPY backend-mcp/middleware.py ./middleware.py
+COPY backend-mcp/auth_context.py ./auth_context.py
 COPY backend-mcp/services/ ./services/
 COPY backend-mcp/tools/ ./tools/
 

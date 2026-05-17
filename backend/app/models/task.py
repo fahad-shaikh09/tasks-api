@@ -18,19 +18,17 @@ class Task(TaskBase, table=True):
     __tablename__ = "task"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    # Owner of the task — populated from the authenticated session.
+    # Indexed because every list/get/update/delete filters by it.
+    user_id: str = Field(index=True, max_length=64)
 
 
 class TaskCreate(TaskBase):
-    """
-    Model for creating a new task.
-    Used for POST requests - doesn't include ID or status (uses default).
-    """
+    """Body for creating a new task. user_id is injected server-side."""
     pass
 
 
 class TaskResponse(TaskBase):
-    """
-    Model for task responses.
-    Used for API responses - includes the ID.
-    """
+    """API response shape."""
     id: int
+    user_id: str

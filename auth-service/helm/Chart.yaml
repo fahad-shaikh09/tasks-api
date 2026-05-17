@@ -1,0 +1,6 @@
+apiVersion: v2
+name: auth-service
+description: Authentication service (Node.js + better-auth) for Tasks application
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

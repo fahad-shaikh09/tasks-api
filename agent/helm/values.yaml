@@ -18,8 +18,16 @@ route:
 env:
   # MCP server is in the same namespace, reachable via K8s service DNS
   mcpServerUrl: "http://mcp-server:8001/mcp"
+  notificationServiceUrl: "http://notification:8002"
+  # Used to validate session cookies issued by better-auth (in-cluster DNS)
+  authServiceUrl: "http://auth-service:8003"
+  # Public URL of auth-service for browser redirects (must be reachable from the user's browser)
+  authServicePublicUrl: "http://auth-service-tasks-app.apps-crc.testing"
   # Override during install: --set env.openaiApiKey="sk-..."
   openaiApiKey: ""
+  # Chainlit refuses to enable auth_callbacks without this secret.
+  # Generate with: openssl rand -hex 32
+  chainlitAuthSecret: "change-me-chainlit-auth-secret"
 
 resources:
   limits:

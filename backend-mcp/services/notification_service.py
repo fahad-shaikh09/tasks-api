@@ -1,12 +1,9 @@
 """
 Notification Service Client
 
-Calls the notification microservice's REST API to fetch and clear
-notifications. The notification service runs in the same K8s namespace
-and is reachable via its Service DNS name.
-
-Flow:
-    MCP tool → this client → HTTP GET/DELETE → notification service (port 8002)
+Calls the notification microservice's REST API to fetch and clear the
+current user's notifications. Filters by user_id so each call only
+returns what the authenticated user is allowed to see.
 """
 
 import os
@@ -22,20 +19,12 @@ NOTIFICATION_SERVICE_URL = os.getenv(
 )
 
 
-async def list_notifications(limit: Optional[int] = None) -> list[dict]:
-    """
-    Fetch notifications from the notification service (newest first).
-
-    Args:
-        limit: Max number of notifications to return. None = all.
-
-    Returns:
-        List of notification dicts, each with:
-        {id, message, event_type, task_id, timestamp}
-    """
+async def list_notifications(user_id: str, limit: Optional[int] = None) -> list[dict]:
+    """Fetch the given user's notifications, newest first."""
     async with httpx.AsyncClient() as client:
         response = await client.get(
             f"{NOTIFICATION_SERVICE_URL}/notifications",
+            params={"user_id": user_id},
             timeout=10.0,
         )
         response.raise_for_status()
@@ -47,16 +36,12 @@ async def list_notifications(limit: Optional[int] = None) -> list[dict]:
     return notifications
 
 
-async def clear_notifications() -> str:
-    """
-    Clear all notifications from the notification service.
-
-    Returns:
-        Confirmation message from the service.
-    """
+async def clear_notifications(user_id: str) -> str:
+    """Clear the given user's notifications."""
     async with httpx.AsyncClient() as client:
         response = await client.delete(
             f"{NOTIFICATION_SERVICE_URL}/notifications",
+            params={"user_id": user_id},
             timeout=10.0,
         )
         response.raise_for_status()

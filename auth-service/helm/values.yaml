@@ -1,0 +1,54 @@
+replicaCount: 1
+
+image:
+  repository: image-registry.openshift-image-registry.svc:5000/tasks-app/auth-service
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 8003
+
+route:
+  enabled: true
+  # host left blank → OpenShift auto-generates auth-tasks-app.apps-crc.testing
+  host: ""
+
+# Public URL of THIS service. Must match the route host (with scheme).
+# Used by better-auth to construct OAuth redirect URLs.
+# Note: helm release name = "auth-service", so OpenShift generates the
+# host as "auth-service-tasks-app.apps-crc.testing".
+baseUrl: "http://auth-service-tasks-app.apps-crc.testing"
+
+# Where the browser is sent after a successful sign-in/sign-up when no
+# ?redirect= is supplied (e.g. user navigated directly to /signup).
+# Without this, the post-signup redirect lands on this service's "/" which
+# bounces back to /login — making signup look broken.
+defaultRedirectUrl: "http://agent-tasks-app.apps-crc.testing/"
+
+# Cookie domain so the session cookie is shared across the cluster's
+# subdomains (auth-, agent-, mcp-server-, notification-, ...).
+cookieDomain: ".apps-crc.testing"
+cookieSecure: "false"  # set "true" once TLS is enabled
+
+# Origins allowed to call this service. Anything that needs to read
+# the session cookie cross-origin must appear here.
+trustedOrigins: "http://agent-tasks-app.apps-crc.testing,http://auth-service-tasks-app.apps-crc.testing"
+
+# Secrets — provide via --set or a values override file. Never commit real values.
+secrets:
+  # openssl rand -hex 32
+  betterAuthSecret: "change-me-generate-with-openssl-rand-hex-32"
+  databaseUrl: "postgresql://user:password@host:5432/dbname?sslmode=require"
+  googleClientId: ""
+  googleClientSecret: ""
+  githubClientId: ""
+  githubClientSecret: ""
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 384Mi
+  requests:
+    cpu: 50m
+    memory: 96Mi

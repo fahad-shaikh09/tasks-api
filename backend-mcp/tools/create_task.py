@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from mcp.server.fastmcp import FastMCP
 
 from app.core.database import get_session
+from auth_context import get_current_user
 from services.task_service import create_task as svc_create_task
 
 
@@ -62,10 +63,12 @@ def register(mcp: FastMCP) -> None:
         Returns:
             str: JSON object with the created task including its assigned ID.
         """
+        user = get_current_user()
         session = next(get_session())
         try:
             task = await svc_create_task(
                 session=session,
+                user_id=user.id,
                 title=params.title,
                 description=params.description,
                 status=params.status,

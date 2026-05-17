@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from mcp.server.fastmcp import FastMCP
 
 from app.core.database import get_session
+from auth_context import get_current_user
 from services.task_service import get_task as svc_get_task
 
 
@@ -44,9 +45,10 @@ def register(mcp: FastMCP) -> None:
         Returns:
             str: JSON object with the task data, or an error message if not found.
         """
+        user = get_current_user()
         session = next(get_session())
         try:
-            task = svc_get_task(session=session, task_id=params.task_id)
+            task = svc_get_task(session=session, user_id=user.id, task_id=params.task_id)
             if not task:
                 return f"Error: Task with ID {params.task_id} not found."
             return json.dumps(task.model_dump(), indent=2, default=str)

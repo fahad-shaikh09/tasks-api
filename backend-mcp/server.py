@@ -81,6 +81,8 @@ args = parser.parse_args()
 # ---------------------------------------------------------------------------
 # Initialize the MCP server
 # ---------------------------------------------------------------------------
+from middleware import SessionAuthMiddleware  # noqa: E402
+
 mcp = FastMCP("tasks_mcp", host=args.host, port=args.port)
 
 # ---------------------------------------------------------------------------
@@ -110,11 +112,21 @@ logger.info("Database tables verified/created")
 if __name__ == "__main__":
     import asyncio
     # Probe the Dapr sidecar so we know up front whether publishing will work.
-    # If it fails, events.py will log "Dapr sidecar NOT reachable..." loudly.
     try:
         asyncio.run(verify_dapr_publish_ready())
     except Exception as e:
         logger.warning(f"Dapr startup probe error: {e}")
 
     logger.info(f"Starting tasks_mcp — transport={args.transport}, host={args.host}, port={args.port}")
-    mcp.run(transport=args.transport)
+
+    if args.transport == "streamable-http":
+        # Build the underlying Starlette app, wrap with auth middleware,
+        # serve with uvicorn. This is the deployment path for K8s.
+        import uvicorn
+        app = mcp.streamable_http_app()
+        wrapped = SessionAuthMiddleware(app)
+        uvicorn.run(wrapped, host=args.host, port=args.port, log_level="info")
+    else:
+        # stdio mode: local agent process talks directly. No HTTP layer
+        # exists to inject middleware into; auth happens at a higher level.
+        mcp.run(transport=args.transport)

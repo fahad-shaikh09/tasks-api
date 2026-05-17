@@ -25,6 +25,7 @@ COPY pyproject.toml ./
 RUN /root/.local/bin/uv pip install --system -r pyproject.toml
 
 COPY main.py ./
+COPY auth_client.py ./
 COPY public ./public
 COPY .chainlit ./.chainlit
 
